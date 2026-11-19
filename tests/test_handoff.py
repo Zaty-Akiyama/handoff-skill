@@ -126,6 +126,42 @@ printf '%s\\n' "$REPLY"
             "HANDOFF_CODEX_BIN",
         )
 
+    def test_review_preamble_and_ambiguous_conclusions(self):
+        first, second = self.heads[:2]
+        reply = (
+            "差分を確認しました。\n\n結果をまとめます。\n"
+            "結論：修正が必要\n\n## 未解決の指摘\n- 境界条件の確認"
+        )
+        process = self.review(first, to="claude", reply=reply)
+        result = self.result(process)
+        self.assertIn("起動中", process.stderr)
+        self.assertIn("応答あり", process.stderr)
+        self.assertIn("保存済み", process.stderr)
+        self.assertIn("**結論：修正が必要**", result.read_text())
+        self.assertIn("境界条件の確認", result.read_text())
+        self.assertNotIn("結果をまとめます。", result.read_text())
+        self.assertIn(reply, result.with_suffix(".stdout").read_text())
+
+        before = self.latest.read_bytes()
+        cases = [
+            ("## 検証結果\n確認しました。", "結論欄がありません"),
+            ("結論：指摘なし\n\n**結論：修正が必要**", "結論欄が複数あります"),
+            ("結論：未定", "規定の選択肢"),
+            ("## 検証結果\n結論：指摘なし", "短い前置き"),
+            ("一行目\n二行目\n三行目\n結論：指摘なし", "短い前置き"),
+        ]
+        for malformed, reason in cases:
+            with self.subTest(reason=reason, reply=malformed):
+                failed = self.review(second, reply=malformed)
+                self.assertNotEqual(failed.returncode, 0)
+                self.assertIn("応答あり", failed.stderr)
+                self.assertIn("解析失敗", failed.stderr)
+                self.assertIn(reason, failed.stderr)
+                self.assertNotIn("保存済み", failed.stderr)
+                self.assertEqual(failed.stdout, "")
+                self.assertEqual(self.latest.read_bytes(), before)
+        self.assertEqual(list(self.history.glob(f"run-*/{self.repo.name}.md")), [result])
+
     def test_sha_mismatch_and_failed_review_preserve_latest(self):
         first, second = self.heads[:2]
         self.result(self.review(first))
