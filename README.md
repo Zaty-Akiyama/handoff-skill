@@ -57,3 +57,7 @@ python3 -B -m unittest discover -s tests -v
 ```
 
 Tests use temporary Git repositories and stub CLIs and run offline.
+
+## License
+
+[MIT](LICENSE).
