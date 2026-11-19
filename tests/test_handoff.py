@@ -61,7 +61,8 @@ printf '%s\\n' "$REPLY"
         path.write_text("#!/bin/sh\n" + code + "\n", encoding="utf-8")
         path.chmod(0o755)
 
-    def invoke(self, mode, *flags, to="codex", reply="結論：指摘なし", fail=False, use_root=False, explicit_workspace=False):
+    def invoke(self, mode, *flags, to="codex", reply="結論：指摘なし", fail=False,
+               use_root=False, explicit_workspace=False, codex_bin=None):
         sender = "claude" if to == "codex" else "codex"
         self.call.unlink(missing_ok=True)
         env = dict(
@@ -69,6 +70,9 @@ printf '%s\\n' "$REPLY"
             AGENT_CALL=str(self.call), REPLY=reply, FAIL="yes" if fail else "no",
             IMPLEMENT="yes" if mode == "implement" else "no",
         )
+        env.pop("HANDOFF_CODEX_BIN", None)
+        if codex_bin is not None:
+            env["HANDOFF_CODEX_BIN"] = str(codex_bin)
         workspace = ["--workspace", self.root] if explicit_workspace else []
         return subprocess.run(
             [self.tool / "scripts/handoff", mode, *workspace, *([] if use_root else ["--repo", self.repo.name]),
@@ -110,6 +114,17 @@ printf '%s\\n' "$REPLY"
         href = latest.split("[この回の実行履歴](", 1)[1].split(")", 1)[0]
         self.assertEqual((self.latest.parent / unquote(href)).resolve(), updated.parent)
         self.assertTrue(result.is_file())
+
+    def test_explicit_codex_executable_overrides_path(self):
+        binary = "custom codex"
+        self.stub(binary, 'cat >"$AGENT_CALL"; echo "結論：指摘なし"; echo "custom executable"')
+        result = self.result(self.review(self.heads[0], codex_bin=self.root / binary))
+        self.assertIn("custom executable", result.read_text())
+
+        self.assert_blocked(
+            self.review(self.heads[1], codex_bin=self.root / "missing codex"),
+            "HANDOFF_CODEX_BIN",
+        )
 
     def test_sha_mismatch_and_failed_review_preserve_latest(self):
         first, second = self.heads[:2]

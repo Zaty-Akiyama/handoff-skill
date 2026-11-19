@@ -6,6 +6,8 @@ Handoff passes an implementation brief or a pinned GitHub pull request to the ot
 
 Requires Python 3.8+, Git, and the receiving agent's command-line client. PR review also needs an authenticated GitHub CLI and a github.com `origin` over HTTPS or SSH. The script targets macOS and Linux.
 
+The Codex CLI is resolved through `PATH`. If your installation is elsewhere, set `HANDOFF_CODEX_BIN` to the absolute path of the executable.
+
 Install the same skill for either agent. If a destination already has a skill named `handoff`, inspect it before replacing it.
 
 | Agent | Copy `skills/handoff/` into | Invoke in a project |

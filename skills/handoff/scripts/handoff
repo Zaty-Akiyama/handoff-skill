@@ -18,9 +18,6 @@ GITHUB_ORIGIN = re.compile(
     r"([a-zA-Z0-9][a-zA-Z0-9-]*/[a-zA-Z0-9_.-]+?)(?:\.git)?/?"
 )
 AGENTS = ("codex", "claude")
-BUNDLED_CODEX = Path(
-    "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
-)
 SHA = re.compile(r"[0-9a-f]{40}")
 REVIEW_HEAD = re.compile(r"^- HEAD: `([0-9a-f]{40})`$", re.MULTILINE)
 REVIEW_VERDICT = re.compile(r"^結論[：:]\s*(指摘なし|修正が必要|ユーザー判断待ち)$")
@@ -144,13 +141,14 @@ def prepare_review(args, workspace, run, pr):
 
 def agent_command(agent, mode, run):
     if agent == "codex":
-        codex = shutil.which("codex")
-        if not codex and os.access(BUNDLED_CODEX, os.X_OK):
-            codex = str(BUNDLED_CODEX)
+        override = os.environ.get("HANDOFF_CODEX_BIN")
+        codex = shutil.which(override or "codex")
         if not codex:
-            raise ValueError("Codex CLI が見つかりません。codex を PATH に追加してください")
+            if override:
+                raise ValueError("HANDOFF_CODEX_BIN に指定した Codex CLI を実行できません")
+            raise ValueError("Codex CLI が見つかりません。PATH または HANDOFF_CODEX_BIN を設定してください")
         sandbox = "read-only" if mode == "review" else "workspace-write"
-        return [codex, "--ask-for-approval", "never", "exec", "--ignore-user-config",
+        return [os.path.abspath(codex), "--ask-for-approval", "never", "exec", "--ignore-user-config",
                 "--sandbox", sandbox, "--color", "never", "-"]
     tools = "Read,Glob,Grep" if mode == "review" else "Read,Glob,Grep,Edit,Write"
     extra = ["--add-dir", str(run)] if mode == "review" else []
