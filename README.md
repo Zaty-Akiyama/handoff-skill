@@ -8,12 +8,23 @@ Requires Python 3.8+, Git, and the receiving agent's command-line client. PR rev
 
 The Codex CLI is resolved through `PATH`. If your installation is elsewhere, set `HANDOFF_CODEX_BIN` to the absolute path of the executable.
 
-Install the same skill for either agent. If a destination already has a skill named `handoff`, inspect it before replacing it.
+Keep one Git checkout and link the skill files into each agent's install directory. Pull updates in that checkout to update both installations at once. Copying the skill directory also works when the checkout will be moved or removed.
 
-| Agent | Copy `skills/handoff/` into | Invoke in a project |
+| Agent | Install directory | Invoke in a project |
 |---|---|---|
-| Codex | `~/.agents/skills/` | `$handoff` |
-| Claude Code | `~/.claude/skills/` | `/handoff` |
+| Codex | `~/.agents/skills/handoff/` | `$handoff` |
+| Claude Code | `~/.claude/skills/handoff/` | `/handoff` |
+
+From the root of this checkout, run the following for a new install. When switching from copies, move the existing `SKILL.md` and `scripts/` out of the install directories first. Keep any existing `knowledge` link in place.
+
+```sh
+repo="$(pwd -P)"
+for skill_dir in "$HOME/.agents/skills/handoff" "$HOME/.claude/skills/handoff"; do
+  mkdir -p "$skill_dir"
+  ln -s "$repo/skills/handoff/SKILL.md" "$skill_dir/SKILL.md"
+  ln -s "$repo/skills/handoff/scripts" "$skill_dir/scripts"
+done
+```
 
 Start the agent in the project where you want to use the skill. Name the implementation and review roles in your request. The selected agent processes the brief and repository material through its provider.
 
@@ -45,6 +56,8 @@ If the workspace is inside a Git worktree, ignore `/.handoff-runs/` and `/handof
 - `.handoff-runs/` holds individual run records. Successful reviews remove their temporary checkout. Implementation checkouts retain their changes for you to inspect and apply.
 
 ## Private review knowledge
+
+To use the same private notes from different projects, link `knowledge` beside each installed `SKILL.md` to the `knowledge/` directory in your local checkout of this repository. Point both installations at the same directory. The calling agent can consult the index locally. Pass only relevant checks that the user has authorized sharing with the receiving agent.
 
 If `knowledge/index.md` does not exist, create it when saving your first verified, reusable review lesson. Add one row per note with when it applies, what to check, and a relative link. Use the index to open only notes relevant to the current change.
 
