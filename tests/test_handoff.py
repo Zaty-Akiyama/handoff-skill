@@ -129,19 +129,21 @@ printf '%s\\n' "$REPLY"
 
     def test_incremental_review_carries_only_unresolved_findings_for_since_sha(self):
         first, second, third = self.heads[:3]
-        self.result(self.review(first, reply=(
+        previous = self.result(self.review(first, reply=(
             "結論：修正が必要\n\n"
             "## 未解決の指摘\n- 日付の境界条件を確認する。\n\n"
             "## 解消済みの指摘\n- 古い表示の指摘。\n\n"
-            "## 検証結果\n- 前回のテスト結果。"
+            "## 検証結果\n- 前回のテスト結果。\n\n"
+            "## 参考資料への追記候補\n- 汎用の確認点候補。"
         )))
+        self.assertIn("汎用の確認点候補。", previous.read_text())
         self.result(self.review(second, reply=(
             "結論：修正が必要\n\n## 未解決の指摘\n- 別のSHAの指摘。"
         )))
         result = self.result(self.review(third, "--since", first[:8], to="claude"))
         sent = self.call.read_text()
         self.assertIn("日付の境界条件を確認する。", sent)
-        for excluded in ("古い表示の指摘。", "前回のテスト結果。", "別のSHAの指摘。"):
+        for excluded in ("古い表示の指摘。", "前回のテスト結果。", "別のSHAの指摘。", "汎用の確認点候補。"):
             self.assertNotIn(excluded, sent)
         self.assertEqual((result.parent / "previous-findings.md").read_text(),
                          "- 日付の境界条件を確認する。\n")
