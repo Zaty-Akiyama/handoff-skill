@@ -36,6 +36,8 @@ Each run creates an isolated checkout, so even a small re-review has checkout ov
 
 ## Local output
 
+If the workspace is inside a Git worktree, ignore `/.handoff-runs/` and `/handoff-requests/` in its `.gitignore` before running Handoff. The calling agent can set these rules up when using the skill. Already tracked files need separate handling.
+
 - `handoff-requests/tasks/<task>/brief.md` is a suggested location for implementation briefs.
 - `handoff-requests/<repo>/pr-<number>/` holds the PR brief and the latest `review.md`.
 - `.handoff-runs/` holds individual run records. Successful reviews remove their temporary checkout. Implementation checkouts retain their changes for you to inspect and apply.

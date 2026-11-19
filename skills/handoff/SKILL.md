@@ -7,6 +7,8 @@ description: Pass an implementation brief or a pinned GitHub PR between Codex an
 
 Use [scripts/handoff](scripts/handoff) from this skill. Pass `--workspace` with the absolute project directory and use `--repo` only for Git repositories directly below it. Use the sender and recipient specified by the user.
 
+Before the first handoff in a workspace, check whether its output paths are inside a Git worktree. If they are, add `/.handoff-runs/` and `/handoff-requests/` to the workspace's `.gitignore` where existing rules do not already cover them. If any handoff files are already tracked, tell the user.
+
 - `implement --from AGENT --to AGENT --brief PATH` passes an implementation or fix brief and returns a path to the result and its work copy.
 - `review --pr NUMBER --head SHA --from AGENT --to AGENT` reviews the pinned PR. Add `--brief PATH` for task-specific requirements or test results. For re-review, add `--since PREVIOUS_SHA` and give only new context in the brief.
 
